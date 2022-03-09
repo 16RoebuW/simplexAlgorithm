@@ -265,6 +265,46 @@ namespace simplexAlgorithm
 
             int height = lessThanConstraints + greaterThanConstraints + 1;
             int width = variableNum + lessThanConstraints + greaterThanConstraints + greaterThanConstraints + 1;
+
+            decimal[,] initialTableau = new decimal[height, width];
+
+            for (int i = 0; i < unparsedConstraints.Count - 1; i += 3)
+            {
+                if (unparsedConstraints[i + 1] == "1")
+                {
+                    // This means that we need artificial variables
+                    // Trailing zeros will be added in the parsing phase
+
+                    for (int j = 0; j < lessThanConstraints + i/3; j++)
+                    {
+                        unparsedConstraints[i] += ",0";
+                    }
+                    unparsedConstraints[i] += ",1";
+                }
+                else
+                {
+                    for (int j = 0; j < i/3; j++)
+                    {
+                        unparsedConstraints[i] += ",0";
+                    }
+                    unparsedConstraints[i] += ",1";
+                }
+
+
+                string[] constraintArray = unparsedConstraints[i].Split(',');
+                for (int j = 0; j < width - 1; j++)
+                {
+                    // We try to catch if the constraintArray is shorter than expected. If so, we fill the rest of the row with zeros (apart from the value)
+                    try
+                    {
+                        initialTableau[i, j] = int.Parse(constraintArray[j]);
+                    }
+                    catch (Exception e)
+                    {
+                        initialTableau[i, j] = 0;
+                    }
+                }
+            }
         }
     }
 }
