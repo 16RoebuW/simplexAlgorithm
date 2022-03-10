@@ -262,49 +262,71 @@ namespace simplexAlgorithm
 
             Console.WriteLine("Enter the objective function in the form (p = ) x,y,z,c where c is the constant term");
             string objective = Console.ReadLine();
+            Console.WriteLine("Should it be maximized [max] or minimized [min]?");
+            bool maximized = Console.ReadLine() == "max" ? true : false;
+
+
 
             int height = lessThanConstraints + greaterThanConstraints + 1;
             int width = variableNum + lessThanConstraints + greaterThanConstraints + greaterThanConstraints + 1;
 
             decimal[,] initialTableau = new decimal[height, width];
 
+            // Not sure about the width of this
+            decimal[,] artificialVariables = new decimal[greaterThanConstraints, lessThanConstraints + variableNum + 1];
+            int artiVIndex = 0;
+
             for (int i = 0; i < unparsedConstraints.Count - 1; i += 3)
             {
-                if (unparsedConstraints[i + 1] == "1")
+                string[] constraintArray = unparsedConstraints[i].Split(',');
+                for (int j = 0; j < variableNum; j++)
                 {
-                    // This means that we need artificial variables
-                    // Trailing zeros will be added in the parsing phase
+                    initialTableau[i, j] = int.Parse(constraintArray[j]);
+                }
 
-                    for (int j = 0; j < lessThanConstraints + i/3; j++)
-                    {
-                        unparsedConstraints[i] += ",0";
-                    }
-                    unparsedConstraints[i] += ",1";
+                if (unparsedConstraints[i + 1] == "0")
+                {
+                    initialTableau[i, i + variableNum + 1] = 1;
                 }
                 else
                 {
-                    for (int j = 0; j < i/3; j++)
-                    {
-                        unparsedConstraints[i] += ",0";
-                    }
-                    unparsedConstraints[i] += ",1";
-                }
+                    // This will add the values for surplus and artificial variables to the table, however columns will be in the order they were entered.
+                    // E.g x, y, z, Value, s, t, s1, a1, u, v...
+                    initialTableau[i, i + variableNum + 1] = -1;
+                    initialTableau[i, i + variableNum + 2] = 1;
 
-
-                string[] constraintArray = unparsedConstraints[i].Split(',');
-                for (int j = 0; j < width - 1; j++)
-                {
-                    // We try to catch if the constraintArray is shorter than expected. If so, we fill the rest of the row with zeros (apart from the value)
-                    try
+                    // Rearrange the artificial variables
+                    for (int j = 0; j < constraintArray.Length; j++)
                     {
-                        initialTableau[i, j] = int.Parse(constraintArray[j]);
+                        artificialVariables[artiVIndex, j] = -Convert.ToDecimal(constraintArray[j]);
                     }
-                    catch (Exception e)
-                    {
-                        initialTableau[i, j] = 0;
-                    }
+                    // Add the value to the artificial variable
+                    artificialVariables[artiVIndex, lessThanConstraints + variableNum] = Convert.ToDecimal(unparsedConstraints[i + 2]);
                 }
             }
+
+            string[] objectiveArray = objective.Split(',');
+
+            for (int i = 0; i < height; i++)
+            {
+                initialTableau[height - 1, i] = decimal.Parse(objectiveArray[i]);
+                if (maximized)
+                {
+                    // We have the negative already, so if it is maximised we invert it.
+                    initialTableau[height - 1, i] *= -1;
+                }
+            }
+
+            initialTableau[height - 1, variableNum] *= -1;
+            // Setting the value of the profit row to it's negative, this is equivalent to rearranging the P = x + y + z equation
+
+            // Now to rearrange the artificial variables to find the profit function
+            for (int i = 0; i < greaterThanConstraints; i++)
+            {
+                
+            }
+
+            DisplayTable(initialTableau);
         }
     }
 }
