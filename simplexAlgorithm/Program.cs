@@ -10,7 +10,8 @@ namespace simplexAlgorithm
     {
         static void Main(string[] args)
         {
-            RegularSimplex();
+            BigM();
+            //RegularSimplex();
             Console.ReadLine();
         }
 
@@ -139,7 +140,8 @@ namespace simplexAlgorithm
                 decimal min = 0;
                 for (int i = 0; i < width; i++)
                 {
-                    if (initialTableau[height - 1, i] < min)
+                    // Do not check the value column
+                    if (initialTableau[height - 1, i] < min && i != variableNum)
                     {
                         min = initialTableau[height - 1, i];
                         pivotCol = i;
@@ -242,7 +244,7 @@ namespace simplexAlgorithm
 
                 Console.WriteLine("Is the constraint <= or >= the constant? Enter 0 for <= and 1 for >=");
                 unparsedConstraints.Add(Console.ReadLine());
-                if (Console.ReadLine() == "1")
+                if (unparsedConstraints.Last() == "1")
                 {
                     greaterThanConstraints++; 
                 }
@@ -273,20 +275,21 @@ namespace simplexAlgorithm
             decimal[,] initialTableau = new decimal[height, width];
 
             // Not sure about the width of this
-            decimal[,] artificialVariables = new decimal[greaterThanConstraints, lessThanConstraints + variableNum + 1];
+            decimal[,] artificialVariables = new decimal[greaterThanConstraints, width];
             int artiVIndex = 0;
 
-            for (int i = 0; i < unparsedConstraints.Count - 1; i += 3)
+            for (int i = 0; i < unparsedConstraints.Count/3; i++)
             {
-                string[] constraintArray = unparsedConstraints[i].Split(',');
+                string[] constraintArray = unparsedConstraints[3 * i].Split(',');
                 for (int j = 0; j < variableNum; j++)
                 {
                     initialTableau[i, j] = int.Parse(constraintArray[j]);
                 }
+                initialTableau[i, variableNum] = int.Parse(unparsedConstraints[(3 * i) + 2]);
 
-                if (unparsedConstraints[i + 1] == "0")
+                if (unparsedConstraints[(3 * i) + 1] == "0")
                 {
-                    initialTableau[i, i + variableNum + 1] = 1;
+                    initialTableau[i, i + variableNum + (artiVIndex * 2) + 1] = 1;
                 }
                 else
                 {
@@ -301,7 +304,12 @@ namespace simplexAlgorithm
                         artificialVariables[artiVIndex, j] = -Convert.ToDecimal(constraintArray[j]);
                     }
                     // Add the value to the artificial variable
-                    artificialVariables[artiVIndex, lessThanConstraints + variableNum] = Convert.ToDecimal(unparsedConstraints[i + 2]);
+                    artificialVariables[artiVIndex, variableNum] = Convert.ToDecimal(unparsedConstraints[(3 * i) + 2]);
+
+                    // Add the surplus variable to the artificial variable
+                    artificialVariables[artiVIndex, i + variableNum + 1] = 1;
+
+                    artiVIndex++;
                 }
             }
 
@@ -310,21 +318,31 @@ namespace simplexAlgorithm
             for (int i = 0; i < height; i++)
             {
                 initialTableau[height - 1, i] = decimal.Parse(objectiveArray[i]);
+            }
+
+            // Subtracting M(sum of artificial variables) from the objective row
+            // M is int.Max, 2^31 - 1
+            // Decimals can store values up to 2^96
+
+            for (int i = 0; i < greaterThanConstraints; i++)
+            {
+                for (int j = 0; j < width; j++)
+                {
+                    initialTableau[height - 1, j] -= int.MaxValue * artificialVariables[i, j];
+                }
+            }
+
+            for (int i = 0; i < width; i++)
+            {
                 if (maximized)
                 {
                     // We have the negative already, so if it is maximised we invert it.
                     initialTableau[height - 1, i] *= -1;
                 }
             }
-
             initialTableau[height - 1, variableNum] *= -1;
             // Setting the value of the profit row to it's negative, this is equivalent to rearranging the P = x + y + z equation
 
-            // Now to rearrange the artificial variables to find the profit function
-            for (int i = 0; i < greaterThanConstraints; i++)
-            {
-                
-            }
 
             DisplayTable(initialTableau);
         }
