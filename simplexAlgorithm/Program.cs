@@ -234,6 +234,7 @@ namespace simplexAlgorithm
             Console.WriteLine("Enter the number of variables");
             variableNum = int.Parse(Console.ReadLine());
 
+
             List<string> unparsedConstraints = new List<string>();
             bool entryDone = false;
 
@@ -260,6 +261,25 @@ namespace simplexAlgorithm
 
                 Console.WriteLine("Have all of the constraints been entered? Y/N");
                 entryDone = Console.ReadLine() == "Y" ? true : false;
+            }
+
+            string[] variables = new string[variableNum + lessThanConstraints + (greaterThanConstraints * 2)];
+            for (int i = 0; i < variableNum; i++)
+            {
+                variables[i] = ((char)(120 + i)).ToString();
+                // Add a letter (starting from x) to the array for each variable
+            }
+            for (int i = 0; i < lessThanConstraints; i++)
+            {
+                variables[i + variableNum] = ((char)(115 + i)).ToString();
+                // Add a letter (starting from s) to the array for each slack variable/constraint
+            }
+            for (int i = 0; i < greaterThanConstraints; i++)
+            {
+                // Surplus variables are represented as s0,s1,s2...
+                variables[i + variableNum + lessThanConstraints] = "s" + i;
+                // Artificial variables are represented as a0,a1,a2...
+                variables[i + variableNum + lessThanConstraints] = "a" + i;
             }
 
             Console.WriteLine("Enter the objective function in the form (p = ) x,y,z,c where c is the constant term");
@@ -345,6 +365,83 @@ namespace simplexAlgorithm
 
 
             DisplayTable(initialTableau);
+            // Initial tableau complete!
+
+            bool solutionFound = false;
+
+            while (!solutionFound)
+            {
+                // Select pivot column (most negative value in objective row)
+                int pivotCol = -1;
+                decimal min = 0;
+                for (int i = 0; i < width; i++)
+                {
+                    // Do not check the value column
+                    if (initialTableau[height - 1, i] < min && i != variableNum)
+                    {
+                        min = initialTableau[height - 1, i];
+                        pivotCol = i;
+                    }
+                }
+
+                // Select pivot row (using least positive theta values)
+                int pivotRow = -1;
+                decimal min2 = int.MaxValue;
+                // Do not check the objective row
+                for (int i = 0; i < height - 1; i++)
+                {
+                    decimal thetaVal = -1;
+                    if (initialTableau[i, pivotCol] != 0)
+                    {
+                        thetaVal = initialTableau[i, variableNum] / initialTableau[i, pivotCol];
+                    }
+                    if (thetaVal < min2 && thetaVal > 0)
+                    {
+                        min2 = thetaVal;
+                        pivotRow = i;
+                    }
+                }
+
+                decimal pivot = initialTableau[pivotRow, pivotCol];
+                Console.WriteLine($"pivot = {pivot}");
+
+                // Create another tableau using the pivot
+                //decimal[,] newTableau = new decimal[height, width];
+
+                // Divide the pivot row by the pivot
+                for (int i = 0; i < width; i++)
+                {
+                    initialTableau[pivotRow, i] = initialTableau[pivotRow, i] / pivot;
+                }
+
+                // Subtract some multiple of the pivot row from each other row so that the value in the pivot column is 0.
+                for (int i = 0; i < height; i++)
+                {
+                    if (i != pivotRow)
+                    {
+                        decimal mult = initialTableau[i, pivotCol];
+                        for (int j = 0; j < width; j++)
+                        {
+                            initialTableau[i, j] = initialTableau[i, j] - mult * initialTableau[pivotRow, j];
+                        }
+                    }
+                }
+
+                Console.WriteLine();
+                DisplayTable(initialTableau);
+
+                // Check if there are negative values in the objective row
+                solutionFound = true;
+                for (int i = 0; i < width; i++)
+                {
+                    if (initialTableau[height - 1, i] < 0)
+                    {
+                        solutionFound = false;
+                    }
+                }
+
+                // If there are, repeat
+            }
         }
     }
 }
