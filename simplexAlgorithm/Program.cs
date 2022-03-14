@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace simplexAlgorithm
 {
     class Program
     {
+        static int precision = 4;
+        // The precision in decimal places of outputs
+
         static void Main(string[] args)
         {
             BigM();
@@ -17,7 +18,7 @@ namespace simplexAlgorithm
 
         private static void DisplayTable(decimal[,] table)
         {
-            // Find out the widest number in each column
+            // Find the widest number in each column
             int[] widths = new int[table.GetLength(1)];
             for (int i = 0; i < table.GetLength(1); i++)
             {
@@ -31,7 +32,6 @@ namespace simplexAlgorithm
                 }
                 widths[i] = max;
             }
-
 
             // Display the table
             for (int i = 0; i < table.GetLength(0); i++)
@@ -167,7 +167,7 @@ namespace simplexAlgorithm
                 }
 
                 decimal pivot = initialTableau[pivotRow, pivotCol];
-                Console.WriteLine($"pivot = {pivot}");
+                Console.WriteLine($"pivot = {Math.Round(pivot, precision)}");
 
                 basicVariables[pivotRow] = variables[pivotCol];
 
@@ -200,7 +200,7 @@ namespace simplexAlgorithm
                 solutionFound = true;
                 for (int i = 0; i < width; i++)
                 {
-                    if (initialTableau[height - 1, i] < 0)
+                    if (i != variableNum && initialTableau[height - 1, i] < 0)
                     {
                         solutionFound = false;
                     }
@@ -215,14 +215,21 @@ namespace simplexAlgorithm
             {
                 if (basicVariables.Contains(variables[i]))
                 {
-                    Console.WriteLine($"{variables[i]} = {initialTableau[Array.IndexOf(basicVariables, variables[i]), variableNum]}");
+                    Console.WriteLine($"{variables[i]} = {Math.Round(initialTableau[Array.IndexOf(basicVariables, variables[i]), variableNum], precision)}");
                 }
                 else
                 {
                     Console.WriteLine($"{variables[i]} = 0");
                 }
             }
-            Console.WriteLine($"Objective value = {initialTableau[height - 1, variableNum]}");
+            if (maximized)
+            {
+                Console.WriteLine($"Objective value = {Math.Round(initialTableau[height - 1, variableNum], precision)}");
+            }
+            else
+            {
+                Console.WriteLine($"Objective value = {-Math.Round(initialTableau[height - 1, variableNum], precision)}");
+            }
         }
 
         private static void BigM()
@@ -231,9 +238,17 @@ namespace simplexAlgorithm
             int greaterThanConstraints = 0;
             int variableNum;
 
+            List<string> variables = new List<string>();
+            List<string> basicVariables = new List<string>();
+
             Console.WriteLine("Enter the number of variables");
             variableNum = int.Parse(Console.ReadLine());
-
+            for (int i = 0; i < variableNum; i++)
+            {
+                variables.Add(((char)(120 + i)).ToString());
+                // Add a letter (starting from x) to the array for each variable
+            }
+            variables.Add("value");
 
             List<string> unparsedConstraints = new List<string>();
             bool entryDone = false;
@@ -247,10 +262,21 @@ namespace simplexAlgorithm
                 unparsedConstraints.Add(Console.ReadLine());
                 if (unparsedConstraints.Last() == "1")
                 {
-                    greaterThanConstraints++; 
+                    // Surplus variables are represented as s0,s1,s2...
+                    variables.Add("s" + greaterThanConstraints);
+                    basicVariables.Add("s" + greaterThanConstraints);
+
+                    // Artificial variables are represented as a0,a1,a2...
+                    variables.Add("a" + greaterThanConstraints);
+
+                    greaterThanConstraints++;
                 }
                 else
                 {
+                    variables.Add(((char)(115 + lessThanConstraints)).ToString());
+                    basicVariables.Add(((char)(115 + lessThanConstraints)).ToString());
+                    // Add a letter (starting from s) to the array for each slack variable/constraint
+
                     lessThanConstraints++;
                 }
 
@@ -263,42 +289,21 @@ namespace simplexAlgorithm
                 entryDone = Console.ReadLine() == "Y" ? true : false;
             }
 
-            string[] variables = new string[variableNum + lessThanConstraints + (greaterThanConstraints * 2)];
-            for (int i = 0; i < variableNum; i++)
-            {
-                variables[i] = ((char)(120 + i)).ToString();
-                // Add a letter (starting from x) to the array for each variable
-            }
-            for (int i = 0; i < lessThanConstraints; i++)
-            {
-                variables[i + variableNum] = ((char)(115 + i)).ToString();
-                // Add a letter (starting from s) to the array for each slack variable/constraint
-            }
-            for (int i = 0; i < greaterThanConstraints; i++)
-            {
-                // Surplus variables are represented as s0,s1,s2...
-                variables[i + variableNum + lessThanConstraints] = "s" + i;
-                // Artificial variables are represented as a0,a1,a2...
-                variables[i + variableNum + lessThanConstraints] = "a" + i;
-            }
+
+            int height = lessThanConstraints + greaterThanConstraints + 1;
+            int width = variableNum + lessThanConstraints + greaterThanConstraints + greaterThanConstraints + 1;
 
             Console.WriteLine("Enter the objective function in the form (p = ) x,y,z,c where c is the constant term");
             string objective = Console.ReadLine();
             Console.WriteLine("Should it be maximized [max] or minimized [min]?");
             bool maximized = Console.ReadLine() == "max" ? true : false;
 
-
-
-            int height = lessThanConstraints + greaterThanConstraints + 1;
-            int width = variableNum + lessThanConstraints + greaterThanConstraints + greaterThanConstraints + 1;
-
             decimal[,] initialTableau = new decimal[height, width];
 
-            // Not sure about the width of this
             decimal[,] artificialVariables = new decimal[greaterThanConstraints, width];
             int artiVIndex = 0;
 
-            for (int i = 0; i < unparsedConstraints.Count/3; i++)
+            for (int i = 0; i < unparsedConstraints.Count / 3; i++)
             {
                 string[] constraintArray = unparsedConstraints[3 * i].Split(',');
                 for (int j = 0; j < variableNum; j++)
@@ -309,14 +314,14 @@ namespace simplexAlgorithm
 
                 if (unparsedConstraints[(3 * i) + 1] == "0")
                 {
-                    initialTableau[i, i + variableNum + (artiVIndex * 2) + 1] = 1;
+                    initialTableau[i, i + variableNum + artiVIndex + 1] = 1;
                 }
                 else
                 {
                     // This will add the values for surplus and artificial variables to the table, however columns will be in the order they were entered.
                     // E.g x, y, z, Value, s, t, s1, a1, u, v...
-                    initialTableau[i, i + variableNum + 1] = -1;
-                    initialTableau[i, i + variableNum + 2] = 1;
+                    initialTableau[i, i + variableNum + artiVIndex + 1] = -1;
+                    initialTableau[i, i + variableNum + artiVIndex + 2] = 1;
 
                     // Rearrange the artificial variables
                     for (int j = 0; j < constraintArray.Length; j++)
@@ -327,7 +332,7 @@ namespace simplexAlgorithm
                     artificialVariables[artiVIndex, variableNum] = Convert.ToDecimal(unparsedConstraints[(3 * i) + 2]);
 
                     // Add the surplus variable to the artificial variable
-                    artificialVariables[artiVIndex, i + variableNum + 1] = 1;
+                    artificialVariables[artiVIndex, i + variableNum + artiVIndex + 1] = 1;
 
                     artiVIndex++;
                 }
@@ -335,20 +340,27 @@ namespace simplexAlgorithm
 
             string[] objectiveArray = objective.Split(',');
 
-            for (int i = 0; i < height; i++)
+            for (int i = 0; i < variableNum + 1; i++)
             {
                 initialTableau[height - 1, i] = decimal.Parse(objectiveArray[i]);
             }
 
             // Subtracting M(sum of artificial variables) from the objective row
             // M is int.Max, 2^31 - 1
-            // Decimals can store values up to 2^96
+            // Decimals can store values up to 2^96 (kinda)
 
             for (int i = 0; i < greaterThanConstraints; i++)
             {
                 for (int j = 0; j < width; j++)
                 {
-                    initialTableau[height - 1, j] -= int.MaxValue * artificialVariables[i, j];
+                    if (maximized)
+                    {
+                        initialTableau[height - 1, j] -= int.MaxValue * artificialVariables[i, j];
+                    }
+                    else
+                    {
+                        initialTableau[height - 1, j] += int.MaxValue * artificialVariables[i, j];
+                    }
                 }
             }
 
@@ -403,10 +415,11 @@ namespace simplexAlgorithm
                 }
 
                 decimal pivot = initialTableau[pivotRow, pivotCol];
-                Console.WriteLine($"pivot = {pivot}");
+                Console.WriteLine($"pivot = {Math.Round(pivot, precision)}");
+
+                basicVariables[pivotRow] = variables[pivotCol];
 
                 // Create another tableau using the pivot
-                //decimal[,] newTableau = new decimal[height, width];
 
                 // Divide the pivot row by the pivot
                 for (int i = 0; i < width; i++)
@@ -434,13 +447,34 @@ namespace simplexAlgorithm
                 solutionFound = true;
                 for (int i = 0; i < width; i++)
                 {
-                    if (initialTableau[height - 1, i] < 0)
+                    if ((i != variableNum && initialTableau[height - 1, i] < 0) || basicVariables.Contains("a" + i))
                     {
                         solutionFound = false;
                     }
                 }
 
                 // If there are, repeat
+            }
+
+            // Output
+            for (int i = 0; i < variableNum; i++)
+            {
+                if (basicVariables.Contains(variables[i]))
+                {
+                    Console.WriteLine($"{variables[i]} = {Math.Round(initialTableau[basicVariables.IndexOf(variables[i]), variableNum], precision)}");
+                }
+                else
+                {
+                    Console.WriteLine($"{variables[i]} = 0");
+                }
+            }
+            if (maximized)
+            {
+                Console.WriteLine($"Objective value = {Math.Round(initialTableau[height - 1, variableNum], precision)}");
+            }
+            else
+            {
+                Console.WriteLine($"Objective value = {-Math.Round(initialTableau[height - 1, variableNum], precision)}");
             }
         }
     }
