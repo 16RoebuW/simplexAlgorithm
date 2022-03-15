@@ -16,6 +16,10 @@ namespace simplexAlgorithm
             Console.ReadLine();
         }
 
+        /// <summary>
+        /// Displays a decimal table and (tries) to ensure even width columns
+        /// </summary>
+        /// <param name="table">A 2D decimal array</param>
         private static void DisplayTable(decimal[,] table)
         {
             // Find the widest number in each column
@@ -236,7 +240,8 @@ namespace simplexAlgorithm
         {
             int lessThanConstraints = 0;
             int greaterThanConstraints = 0;
-            int variableNum;
+            int variableNum = -1;
+            bool inputValidated = false;
 
             List<string> variables = new List<string>();
             List<string> basicVariables = new List<string>();
@@ -244,15 +249,61 @@ namespace simplexAlgorithm
             Console.WriteLine("Enter the number of variables or enter HELP for a more detailed guide");
 
             string input = Console.ReadLine();
-            if(input == "HELP")
+            if (input == "HELP")
             {
                 Console.WriteLine(" 1. Enter how many variables you want\n 2. Enter a constraint using the variables\n 3. Is the constraint ≤ or ≥ the constant? \n 4. Enter the constant term \n 5. If all the constraints have been entered, enter Y, if not, enter N");
                 Console.WriteLine("");
-                Console.WriteLine("Enter the number of variables");
-                input = Console.ReadLine();
+
+                while (!inputValidated)
+                {
+                    inputValidated = true;
+
+                    Console.WriteLine("Enter the number of variables");
+                    input = Console.ReadLine();
+
+                    try
+                    {
+                        variableNum = int.Parse(input);
+                    }
+                    catch
+                    {
+                        inputValidated = false;
+                        Console.WriteLine($"'{input}' is not a valid number\n");
+                    }
+                }
+            }
+            else
+            {
+                inputValidated = true;
+                try
+                {
+                    variableNum = int.Parse(input);
+                }
+                catch
+                {
+                    inputValidated = false;
+                    Console.WriteLine($"'{input}' is not a valid number\n");
+                }
+
+                while (!inputValidated)
+                {
+                    inputValidated = true;
+
+                    Console.WriteLine("Enter the number of variables");
+                    input = Console.ReadLine();
+
+                    try
+                    {
+                        variableNum = int.Parse(input);
+                    }
+                    catch
+                    {
+                        inputValidated = false;
+                        Console.WriteLine($"'{input}' is not a valid number\n");
+                    }
+                }
             }
 
-            variableNum = int.Parse(input);
             for (int i = 0; i < variableNum; i++)
             {
                 variables.Add(((char)(120 + i)).ToString());
@@ -486,6 +537,30 @@ namespace simplexAlgorithm
             {
                 Console.WriteLine($"Objective value = {-Math.Round(initialTableau[height - 1, variableNum], precision)}");
             }
+        }
+
+        /// <summary>
+        /// Prompts and validates a user input of an array of numbers. Does not parse the input
+        /// </summary>
+        /// <param name="prompt">This will be shown to the user. Include question mark if necessary</param>
+        /// <param name="dataType">The data type that should be tested for. Currently supported: int, decimal</param>
+        /// <returns>Returns the unparsed but validated input</returns>
+        private static string AskForNumArray(string prompt, string dataType)
+        {
+            if (dataType != "int" || dataType != "decimal")
+            {
+                return "Error, incorrect data type in code";
+            }
+            else
+            {
+                bool inputValidated = false;
+                while (!inputValidated)
+                {
+                    Console.WriteLine(prompt);
+                    string input = Console.ReadLine();
+                }
+            }
+            return "";
         }
     }
 }
