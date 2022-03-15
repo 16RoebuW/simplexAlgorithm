@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace simplexAlgorithm
 {
@@ -241,7 +242,9 @@ namespace simplexAlgorithm
             int lessThanConstraints = 0;
             int greaterThanConstraints = 0;
             int variableNum = -1;
+            int additionalRegex = 0;
             bool inputValidated = false;
+            string regexPattern = @"(-?\d*)([A-Za-z])((?>-|\+)\d*)([A-Za-z])";
 
             List<string> variables = new List<string>();
             List<string> basicVariables = new List<string>();
@@ -251,7 +254,7 @@ namespace simplexAlgorithm
             string input = Console.ReadLine();
             if (input == "HELP")
             {
-                Console.WriteLine(" 1. Enter how many variables you want\n 2. Enter a constraint using the variables\n 3. Is the constraint ≤ or ≥ the constant? \n 4. Enter the constant term \n 5. If all the constraints have been entered, enter Y, if not, enter N");
+                Console.WriteLine(" 1. Enter how many variables you want\n 2. Enter a constraint using the variables\n 3. If all the constraints have been entered, enter Y, if not, enter N");
                 Console.WriteLine("");
 
                 while (!inputValidated)
@@ -304,24 +307,36 @@ namespace simplexAlgorithm
                 }
             }
 
-            for (int i = 0; i < variableNum; i++)
+            for (int i = 2; i < variableNum; i++)
             {
-                variables.Add(((char)(120 + i)).ToString());
-                // Add a letter (starting from x) to the array for each variable
+                regexPattern += @"((?>-|\+)\d*)([A-Za-z])";
+                additionalRegex++;
             }
-            variables.Add("value");
+            regexPattern += @"(>|<)(-?\d+)";
 
-            List<string> unparsedConstraints = new List<string>();
+            List<Match> unparsedConstraints = new List<Match>();
             bool entryDone = false;
+            bool variblesAdded = false;
 
             while (!entryDone)
             {
-                Console.WriteLine("Enter the start of a constraint in the form x,y,z");
-                unparsedConstraints.Add(Console.ReadLine());
+                Console.WriteLine("Enter a constraint in the form ax+by+cz<d, where a, b, c, and d are constants and \nx,y, and z are your (single letter) variables");
+                Console.WriteLine("Always enter your variables in the same order");
+                Console.WriteLine("< represents less than or equal to, > represents greater than or equal to");
+                Console.WriteLine("Constraints should be entered in their simplest, integer form, including variables with a multiple of 0");
+                Console.WriteLine("Some examples of acceptable inputs are shown below");
+                Console.WriteLine("1. 2x+4y+3z>-10\n2. x+0y-5z<0\n3. 2x+y>-2\n4. -x-2y<-10");
+                unparsedConstraints.Add(Regex.Match(Console.ReadLine(), regexPattern));
 
-                Console.WriteLine("Is the constraint <= or >= the constant? Enter 0 for <= and 1 for >=");
-                unparsedConstraints.Add(Console.ReadLine());
-                if (unparsedConstraints.Last() == "1")
+                if (!variblesAdded)
+                {
+                    for (int i = 0; i < variableNum; i++)
+                    {
+                        variables.Add(unparsedConstraints.Last().Groups[(i*2) + 2].Value);
+                    }
+                }
+
+                if (unparsedConstraints.Last().Groups[5 + (additionalRegex * 2)].Value == ">")
                 {
                     // Surplus variables are represented as s0,s1,s2...
                     variables.Add("s" + greaterThanConstraints);
@@ -341,21 +356,27 @@ namespace simplexAlgorithm
                     lessThanConstraints++;
                 }
 
-                //bool lessThanOrGreater = Console.ReadLine() == "0" ? false : true;
-
-                Console.WriteLine("Enter the constant term");
-                unparsedConstraints.Add(Console.ReadLine());
-
                 Console.WriteLine("Have all of the constraints been entered? Y/N");
-                entryDone = Console.ReadLine() == "Y" ? true : false;
+                entryDone = Console.ReadLine() == "Y" || Console.ReadLine() == "y" ? true : false;
             }
 
+            variables.Insert(variableNum, "value");
 
             int height = lessThanConstraints + greaterThanConstraints + 1;
             int width = variableNum + lessThanConstraints + greaterThanConstraints + greaterThanConstraints + 1;
 
-            Console.WriteLine("Enter the objective function in the form (p = ) x,y,z,c where c is the constant term");
-            string objective = Console.ReadLine();
+            regexPattern = @"([A-Za-z]+)=(-?\d*)[A-Za-z]((?>\+|-)\d*)[A-Za-z]";
+            for (int i = 2; i < variableNum; i++)
+            {
+                regexPattern += @"((?>\+|-)\d*)[A-Za-z]";
+            }
+            regexPattern += @"((?>\+|-)\d+)?$";
+
+            Console.WriteLine("Enter the objective function in the form p = ax+by+cz+d where d is the optional constant term");
+            Console.WriteLine("'p' can be replaced with any name of your choosing");
+            Console.WriteLine("Some examples of acceptable inputs are shown below");
+            Console.WriteLine("P=-2x+3y-z+2\nC=-x-3y+8z-4\nCost=x+y\nObjective=x+y+z\nProfit=100x-2000y+1842");
+            Match objective = Regex.Match(Console.ReadLine(),regexPattern);
             Console.WriteLine("Should it be maximized [max] or minimized [min]?");
             bool maximized = Console.ReadLine() == "max" ? true : false;
 
@@ -364,16 +385,26 @@ namespace simplexAlgorithm
             decimal[,] artificialVariables = new decimal[greaterThanConstraints, width];
             int artiVIndex = 0;
 
-            for (int i = 0; i < unparsedConstraints.Count / 3; i++)
+            for (int i = 0; i < unparsedConstraints.Count; i++)
             {
-                string[] constraintArray = unparsedConstraints[3 * i].Split(',');
                 for (int j = 0; j < variableNum; j++)
                 {
-                    initialTableau[i, j] = int.Parse(constraintArray[j]);
+                    if (unparsedConstraints[i].Groups[(2 * j) + 1].Value == "" || unparsedConstraints[i].Groups[(2 * j) + 1].Value == "+")
+                    {
+                        initialTableau[i, j] = 1;
+                    }
+                    else if (unparsedConstraints[i].Groups[(2 * j) + 1].Value == "-")
+                    {
+                        initialTableau[i, j] = -1;
+                    }
+                    else
+                    {
+                        initialTableau[i, j] = int.Parse(unparsedConstraints[i].Groups[(2 * j) + 1].Value);
+                    }
                 }
-                initialTableau[i, variableNum] = int.Parse(unparsedConstraints[(3 * i) + 2]);
+                initialTableau[i, variableNum] = int.Parse(unparsedConstraints[i].Groups[6 + (2 * additionalRegex)].Value);
 
-                if (unparsedConstraints[(3 * i) + 1] == "0")
+                if (unparsedConstraints[i].Groups[5 + (additionalRegex * 2)].Value == "<")
                 {
                     initialTableau[i, i + variableNum + artiVIndex + 1] = 1;
                 }
@@ -385,12 +416,23 @@ namespace simplexAlgorithm
                     initialTableau[i, i + variableNum + artiVIndex + 2] = 1;
 
                     // Rearrange the artificial variables
-                    for (int j = 0; j < constraintArray.Length; j++)
+                    for (int j = 0; j < variableNum; j++)
                     {
-                        artificialVariables[artiVIndex, j] = -Convert.ToDecimal(constraintArray[j]);
+                        if (unparsedConstraints[i].Groups[(2 * j) + 1].Value == "" || unparsedConstraints[i].Groups[(2 * j) + 1].Value == "+")
+                        {
+                            artificialVariables[artiVIndex, j] = -1;
+                        }
+                        else if (unparsedConstraints[i].Groups[(2 * j) + 1].Value == "-")
+                        {
+                            artificialVariables[artiVIndex, j] = 1;
+                        }
+                        else
+                        {
+                            artificialVariables[artiVIndex, j] = -Convert.ToDecimal(unparsedConstraints[i].Groups[(2 * j) + 1].Value);
+                        }
                     }
                     // Add the value to the artificial variable
-                    artificialVariables[artiVIndex, variableNum] = Convert.ToDecimal(unparsedConstraints[(3 * i) + 2]);
+                    artificialVariables[artiVIndex, variableNum] = Convert.ToDecimal(unparsedConstraints[i].Groups[6 + (2 * additionalRegex)].Value);
 
                     // Add the surplus variable to the artificial variable
                     artificialVariables[artiVIndex, i + variableNum + artiVIndex + 1] = 1;
@@ -399,11 +441,27 @@ namespace simplexAlgorithm
                 }
             }
 
-            string[] objectiveArray = objective.Split(',');
-
-            for (int i = 0; i < variableNum + 1; i++)
+            for (int i = 0; i < variableNum; i++)
             {
-                initialTableau[height - 1, i] = decimal.Parse(objectiveArray[i]);
+                if (objective.Groups[i + 2].Value == "" || objective.Groups[i + 2].Value == "+")
+                {
+                    initialTableau[height - 1, i] = 1;
+                }
+                else if (objective.Groups[i + 2].Value == "-")
+                {
+                    initialTableau[height - 1, i] = -1;
+                }
+                else
+                {
+                    initialTableau[height - 1, i] = decimal.Parse(objective.Groups[i + 2].Value);
+                }
+            }
+
+            // If a constant term is added to the objective function, add that value to the table
+            // Otherwise, the value in the table remains 0
+            if (objective.Groups[variableNum + 2].Value != "")
+            {
+                initialTableau[height - 1, variableNum] = decimal.Parse(objective.Groups[variableNum + 2].Value);
             }
 
             // Subtracting M(sum of artificial variables) from the objective row
@@ -475,7 +533,16 @@ namespace simplexAlgorithm
                     }
                 }
 
-                decimal pivot = initialTableau[pivotRow, pivotCol];
+                decimal pivot = -1;
+                try
+                {
+                    pivot = initialTableau[pivotRow, pivotCol];
+                }
+                catch
+                {
+                    Console.WriteLine("No feasible solution found");
+                    return;
+                }
                 Console.WriteLine($"pivot = {Math.Round(pivot, precision)}");
 
                 basicVariables[pivotRow] = variables[pivotCol];
@@ -531,11 +598,11 @@ namespace simplexAlgorithm
             }
             if (maximized)
             {
-                Console.WriteLine($"Objective value = {Math.Round(initialTableau[height - 1, variableNum], precision)}");
+                Console.WriteLine($"{objective.Groups[1].Value} = {Math.Round(initialTableau[height - 1, variableNum], precision)}");
             }
             else
             {
-                Console.WriteLine($"Objective value = {-Math.Round(initialTableau[height - 1, variableNum], precision)}");
+                Console.WriteLine($"{objective.Groups[1].Value} = {-Math.Round(initialTableau[height - 1, variableNum], precision)}");
             }
         }
 
