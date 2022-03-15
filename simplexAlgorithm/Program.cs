@@ -241,17 +241,18 @@ namespace simplexAlgorithm
             List<string> variables = new List<string>();
             List<string> basicVariables = new List<string>();
 
-            Console.WriteLine("Enter the number of variables or enter HELP for a list of functions");
+            Console.WriteLine("Enter the number of variables or enter HELP for a more detailed guide");
 
-            string ExcessNum = Console.ReadLine();
-            if(ExcessNum == "HELP")
+            string input = Console.ReadLine();
+            if(input == "HELP")
             {
-                Console.WriteLine(" 1. Enter how many variables you want \n 2. Enter the constraint of the variables \n 3. Is the constraint less than or eaqual to OR greater than or equal to the constant \n 4. Enter the constant term \n 5. Have all of your varaibles been entered? ");
+                Console.WriteLine(" 1. Enter how many variables you want\n 2. Enter a constraint using the variables\n 3. Is the constraint ≤ or ≥ the constant? \n 4. Enter the constant term \n 5. If all the constraints have been entered, enter Y, if not, enter N");
                 Console.WriteLine("");
-                ExcessNum = Console.ReadLine();
+                Console.WriteLine("Enter the number of variables");
+                input = Console.ReadLine();
             }
 
-            variableNum = int.Parse(ExcessNum);
+            variableNum = int.Parse(input);
             for (int i = 0; i < variableNum; i++)
             {
                 variables.Add(((char)(120 + i)).ToString());
