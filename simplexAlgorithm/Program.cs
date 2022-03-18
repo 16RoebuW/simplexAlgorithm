@@ -150,7 +150,7 @@ namespace simplexAlgorithm
                 {
                     for (int i = 0; i < variableNum; i++)
                     {
-                        variables.Add(unparsedConstraints.Last().Groups[(i*2) + 2].Value);
+                        variables.Add(unparsedConstraints.Last().Groups[(i * 2) + 2].Value);
                     }
                 }
 
@@ -194,7 +194,7 @@ namespace simplexAlgorithm
             Console.WriteLine("'p' can be replaced with any name of your choosing");
             Console.WriteLine("Some examples of acceptable inputs are shown below");
             Console.WriteLine("P=-2x+3y-z+2\nC=-x-3y+8z-4\nCost=x+y\nObjective=x+y+z\nProfit=100x-2000y+1842");
-            Match objective = Regex.Match(Console.ReadLine(),regexPattern);
+            Match objective = Regex.Match(Console.ReadLine(), regexPattern);
             Console.WriteLine("Should it be maximized [max] or minimized [min]?");
             bool maximized = Console.ReadLine() == "max" ? true : false;
 
@@ -422,6 +422,59 @@ namespace simplexAlgorithm
             {
                 Console.WriteLine($"{objective.Groups[1].Value} = {-Math.Round(initialTableau[height - 1, variableNum], precision)}");
             }
+        }
+
+        private static decimal[] integerTester(Match[] constraints, Match objective, decimal[] optimal)
+        {
+            int variableNum = objective.Length - 1;
+            decimal[] output = new decimal[variableNum];
+
+            for (int i = 0; i < variableNum; i++)
+            {
+                output[i] = int.Parse(objective.Groups[i * 2].Value);
+            }
+            for (int i = 0; i < Math.Pow(2, output.Length); i++)
+            {
+                string binary = Convert.ToString(i, 2);
+                // fill in the leading 0s
+                while (binary.Length < variableNum)
+                {
+                    binary = "0" + binary;
+                }
+
+                for (int j = 0; j < output.Length; j++)
+                {                                        
+                    output[j] += binary[j];
+                }
+
+                // Check if it is a good solution
+                for (int j = 0; j < constraints.Length; j++)
+                {
+                    decimal total = 0;
+                    for (int k = 0; k < variableNum; k++)
+                    {
+                        total += decimal.Parse(constraints[j].Groups[(k * 2) + 1].Value) * output[k];
+                    }
+
+                    if (constraints[j].Groups[constraints[j].Groups.Count - 1].Value == "<")
+                    {
+
+                    }
+                    else
+                    {
+
+                    }
+                }
+
+
+                // Revert the changes
+                for (int j = 0; j < output.Length; j++)
+                {
+                    output[j] -= binary[j];
+                }
+            }
+
+            return output;
         }
     }
 }
